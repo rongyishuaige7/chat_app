@@ -1,0 +1,21 @@
+workflows:
+  ios-workflow:
+    name: iOS Build
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-keychain initialize
+      - name: Get Flutter dependencies
+        script: |
+          flutter packages pub get
+      - name: Build iOS for simulator
+        script: |
+          flutter build ios --simulator --no-codesign
+    artifacts:
+      - build/ios/iphonesimulator/*.app
