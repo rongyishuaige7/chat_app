@@ -7,10 +7,6 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Set up code signing
-        script: |
-          keychain initialize
-          app-keychain initialize
       - name: Get Flutter dependencies
         script: |
           flutter packages pub get
