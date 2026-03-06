@@ -6,14 +6,16 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
+    ios_code_signing:
+      distribution_type: ad_hoc
+      signing_method: automatic
     scripts:
       - name: Get Flutter dependencies
         script: |
           flutter packages pub get
       - name: Build iOS for device
         script: |
-          flutter build ipa --release --no-codesign
+          flutter build ipa --release
     artifacts:
       - build/ios/**/*.app
       - build/ios/**/*.ipa
-      - build/ios/ipa/*.ipa
