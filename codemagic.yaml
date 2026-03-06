@@ -10,8 +10,9 @@ workflows:
       - name: Get Flutter dependencies
         script: |
           flutter packages pub get
-      - name: Build iOS for simulator
+      - name: Build iOS for device
         script: |
-          flutter build ios --simulator --no-codesign
+          flutter build ipa --release --no-codesign
     artifacts:
-      - build/ios/iphonesimulator/*.app
+      - build/ios/iphone/*.app
+      - build/ios/ipa/*.ipa
