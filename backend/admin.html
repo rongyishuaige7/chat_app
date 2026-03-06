@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI聊天App管理后台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 28px;
+    }
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 12px 24px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .tab.active {
+      background: white;
+      color: #667eea;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .card.active {
+      display: block;
+    }
+    .card h2 {
+      color: #333;
+      margin-bottom: 16px;
+      font-size: 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #666;
+      font-size: 14px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #eee;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button.danger {
+      background: #dc3545;
+    }
+    button.success {
+      background: #28a745;
+    }
+    .result {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      word-break: break-all;
+      display: none;
+    }
+    .result.show {
+      display: block;
+    }
+    .result.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    .result.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+    }
+    .tag {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .tag-vip {
+      background: #28a745;
+      color: white;
+    }
+    .tag-free {
+      background: #6c757d;
+      color: white;
+    }
+    .tag-used {
+      background: #ffc107;
+      color: #333;
+    }
+    .tag-unused {
+      background: #17a2b8;
+      color: white;
+    }
+    .card-list {
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .card-item {
+      padding: 8px 12px;
+      margin: 4px 0;
+      background: white;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .empty {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+    .row > * {
+      flex: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎭 AI聊天App管理后台</h1>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('stats')">📊 数据统计</button>
+      <button class="tab" onclick="showTab('cards')">🎫 卡密管理</button>
+      <button class="tab" onclick="showTab('users')">👥 用户列表</button>
+      <button class="tab" onclick="showTab('characters')">🎨 角色管理</button>
+    </div>
+
+    <!-- 数据统计 -->
+    <div id="stats" class="card active">
+      <h2>📊 数据统计</h2>
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-value" id="totalCards">-</div>
+          <div class="stat-label">总卡密数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="usedCards">-</div>
+          <div class="stat-label">已使用</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="totalUsers">-</div>
+          <div class="stat-label">用户数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="vipUsers">-</div>
+          <div class="stat-label">VIP用户</div>
+        </div>
+      </div>
+      <button onclick="loadStats()">🔄 刷新统计</button>
+    </div>
+
+    <!-- 卡密管理 -->
+    <div id="cards" class="card">
+      <h2>🎫 生成卡密</h2>
+      <div class="row">
+        <div class="form-group">
+          <label>卡密类型</label>
+          <select id="cardType">
+            <option value="nb001">nb001 - 3天VIP</option>
+            <option value="nb002">nb002 - 7天VIP</option>
+            <option value="nb003">nb003 - 30天VIP</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>生成数量</label>
+          <input type="number" id="cardCount" value="5" min="1" max="50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>管理员密钥</label>
+        <input type="password" id="adminKey" value="admin_secret_key">
+      </div>
+      <button onclick="generateCards()">生成卡密</button>
+      <div id="generateResult" class="result"></div>
+
+      <h2 style="margin-top: 24px;">📋 卡密使用记录</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>卡密</th>
+            <th>类型</th>
+            <th>状态</th>
+            <th>使用者</th>
+            <th>使用时间</th>
+          </tr>
+        </thead>
+        <tbody id="cardTable"></tbody>
+      </table>
+    </div>
+
+    <!-- 用户列表 -->
+    <div id="users" class="card">
+      <h2>👥 用户列表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>设备ID</th>
+            <th>免费次数</th>
+            <th>VIP状态</th>
+            <th>VIP到期时间</th>
+            <th>注册时间</th>
+          </tr>
+        </thead>
+        <tbody id="userTable"></tbody>
+      </table>
+    </div>
+
+    <!-- 角色管理 -->
+    <div id="characters" class="card">
+      <h2>🎨 角色列表</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>描述</th>
+            <th>头像</th>
+          </tr>
+        </thead>
+        <tbody id="characterTable"></tbody>
+      </table>
+
+      <h2 style="margin-top: 24px;">➕ 添加新角色</h2>
+      <div class="form-group">
+        <label>角色ID（英文唯一标识）</label>
+        <input type="text" id="newCharId" placeholder="如: loli">
+      </div>
+      <div class="form-group">
+        <label>角色名称</label>
+        <input type="text" id="newCharName" placeholder="如: 小可爱">
+      </div>
+      <div class="form-group">
+        <label>角色描述</label>
+        <input type="text" id="newCharDesc" placeholder="如: 萌萌的小可爱">
+      </div>
+      <div class="form-group">
+        <label>头像URL</label>
+        <input type="text" id="newCharAvatar" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label>系统提示词</label>
+        <textarea id="newCharPrompt" rows="4" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;" placeholder="请描述角色的性格、说话方式等..."></textarea>
+      </div>
+      <button onclick="addCharacter()" class="success">添加角色</button>
+      <div id="charResult" class="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '/api';
+
+    function showTab(tabId) {
+      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'stats') loadStats();
+      if (tabId === 'cards') loadCards();
+      if (tabId === 'users') loadUsers();
+      if (tabId === 'characters') loadCharacters();
+    }
+
+    async function loadStats() {
+      try {
+        const [cardsRes, usersRes] = await Promise.all([
+          fetch(`${API_BASE}/card/all?admin_key=admin_secret_key`),
+          fetch(`${API_BASE}/user/all?admin_key=admin_secret_key`)
+        ]);
+
+        const cardsData = await cardsRes.json();
+        const usersData = await usersRes.json();
+
+        if (cardsData.success) {
+          const cards = cardsData.data || [];
+          document.getElementById('totalCards').textContent = cards.length;
+          document.getElementById('usedCards').textContent = cards.filter(c => c.used_by).length;
+        }
+
+        if (usersData.success) {
+          const users = usersData.data || [];
+          document.getElementById('totalUsers').textContent = users.length;
+          const vipCount = users.filter(u => u.vip_expire_time && new Date(u.vip_expire_time) > new Date()).length;
+          document.getElementById('vipUsers').textContent = vipCount;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function generateCards() {
+      const cardType = document.getElementById('cardType').value;
+      const count = parseInt(document.getElementById('cardCount').value);
+      const adminKey = document.getElementById('adminKey').value;
+      const resultDiv = document.getElementById('generateResult');
+
+      try {
+        const response = await fetch(`${API_BASE}/card/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ card_type: cardType, count, admin_key: adminKey })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.className = 'result show success';
+          resultDiv.innerHTML = `<strong>成功！</strong> 生成了 ${count} 个卡密`;
+          loadCards();
+          loadStats();
+        } else {
+          resultDiv.className = 'result show error';
+          resultDiv.innerHTML = `<strong>失败：</strong> ${data.message}`;
+        }
+      } catch (e) {
+        resultDiv.className = 'result show error';
+        resultDiv.innerHTML = `<strong>错误：</strong> ${e.message}`;
+      }
+    }
+
+    async function loadCards() {
+      const tbody = document.getElementById('cardTable');
+      tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
+
+      try {
+        const response = await fetch(`${API_BASE}/card/all?admin_key=admin_secret_key`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          tbody.innerHTML = data.data.map(c => `
+            <tr>
+              <td><code>${c.card_key}</code></td>
+              <td>${c.card_type}</td>
+              <td><span class="tag ${c.used_by ? 'tag-used' : 'tag-unused'}">${c.used_by ? '已使用' : '未使用'}</span></td>
+              <td>${c.used_by || '-'}</td>
+              <td>${c.used_at || '-'}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">暂无数据</td></tr>';
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5">错误: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function loadUsers() {
+      const tbody = document.getElementById('userTable');
+      tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
+
+      try {
+        const response = await fetch(`${API_BASE}/user/all?admin_key=admin_secret_key`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          tbody.innerHTML = data.data.map(u => {
+            const isVip = u.vip_expire_time && new Date(u.vip_expire_time) > new Date();
+            return `
+              <tr>
+                <td><code>${u.device_id.substring(0, 20)}...</code></td>
+                <td>${u.free_chats}</td>
+                <td><span class="tag ${isVip ? 'tag-vip' : 'tag-free'}">${isVip ? 'VIP' : '免费'}</span></td>
+                <td>${u.vip_expire_time ? u.vip_expire_time.substring(0, 19) : '-'}</td>
+                <td>${u.created_at ? u.created_at.substring(0, 19) : '-'}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="5">暂无数据</td></tr>';
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5">错误: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function loadCharacters() {
+      const tbody = document.getElementById('characterTable');
+      tbody.innerHTML = '<tr><td colspan="4">加载中...</td></tr>';
+
+      try {
+        const response = await fetch(`${API_BASE}/characters`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          tbody.innerHTML = data.data.map(c => `
+            <tr>
+              <td><code>${c.id}</code></td>
+              <td>${c.name}</td>
+              <td>${c.description || '-'}</td>
+              <td><img src="${c.avatar}" width="40" height="40" style="border-radius:50%;"></td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4">暂无数据</td></tr>';
+        }
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4">错误: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function addCharacter() {
+      const id = document.getElementById('newCharId').value.trim();
+      const name = document.getElementById('newCharName').value.trim();
+      const desc = document.getElementById('newCharDesc').value.trim();
+      const avatar = document.getElementById('newCharAvatar').value.trim();
+      const prompt = document.getElementById('newCharPrompt').value.trim();
+      const resultDiv = document.getElementById('charResult');
+
+      if (!id || !name || !prompt) {
+        resultDiv.className = 'result show error';
+        resultDiv.innerHTML = '请填写必填字段（ID、名称、提示词）';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/character/add?admin_key=admin_secret_key`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id, name, description: desc, avatar: avatar || 'https://api.dicebear.com/9.x/avataaars/png?seed=' + id, system_prompt: prompt
+          })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+          resultDiv.className = 'result show success';
+          resultDiv.innerHTML = '角色添加成功！';
+          loadCharacters();
+          // 清空表单
+          document.getElementById('newCharId').value = '';
+          document.getElementById('newCharName').value = '';
+          document.getElementById('newCharDesc').value = '';
+          document.getElementById('newCharAvatar').value = '';
+          document.getElementById('newCharPrompt').value = '';
+        } else {
+          resultDiv.className = 'result show error';
+          resultDiv.innerHTML = `失败：${data.message}`;
+        }
+      } catch (e) {
+        resultDiv.className = 'result show error';
+        resultDiv.innerHTML = `错误：${e.message}`;
+      }
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>
