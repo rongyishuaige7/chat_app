@@ -85,6 +85,17 @@ class ChatProvider extends ChangeNotifier {
     if (_currentCharacter == null) return null;
 
     _isLoading = true;
+    
+    // 【核心修复】：UI 即时响应预扣费，避免等待流结束后才更新，导致用户认为没有扣费
+    if (_user != null && !_user!.isVip && _user!.freeChats > 0) {
+      _user = User(
+        deviceId: _user!.deviceId,
+        freeChats: _user!.freeChats - 1,
+        vipExpireTime: _user!.vipExpireTime,
+        isVip: _user!.isVip,
+      );
+    }
+    
     notifyListeners();
 
     // 添加用户消息
