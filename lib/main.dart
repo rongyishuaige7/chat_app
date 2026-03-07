@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/chat_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
           useMaterial3: true,
           fontFamily: 'sans-serif', // 可以的话，后续引入圆润一些的字体
         ),
-        home: const HomeScreen(),
+        home: const SplashScreen(),
       ),
     );
   }

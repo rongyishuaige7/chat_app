@@ -311,9 +311,10 @@ class _VipScreenState extends State<VipScreen> {
                           children: [
                             const Text('光芒消散时间:', style: TextStyle(color: Colors.white70)),
                             Text(
-                              DateTime.parse(user.vipExpireTime!)
-                                  .toString()
-                                  .split('.')[0],
+                            DateTime.parse(user.vipExpireTime!)
+                                .add(const Duration(hours: 8))
+                                .toString()
+                                .split('.')[0],
                               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                           ],

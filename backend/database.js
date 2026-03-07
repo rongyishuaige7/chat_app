@@ -7,6 +7,10 @@ const db = new sqlite3.Database(dbPath, (err) => {
     console.error('数据库连接失败:', err.message);
   } else {
     console.log('数据库连接成功:', dbPath);
+    // 开启预写式日志(WAL)模式极大地提高并发性能，防止在生产环境高并发下出现 Database is locked 报错
+    db.run('PRAGMA journal_mode = WAL;');
+    // 如果数据库被锁定，等待 5000ms 再报错，减少请求失败的发生
+    db.run('PRAGMA busy_timeout = 5000;');
   }
 });
 

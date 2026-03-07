@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Add HapticFeedback
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 import 'dart:ui';
 import '../models/character.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/animated_orb.dart';
+import '../widgets/typing_indicator.dart';
 import 'vip_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -28,15 +31,28 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _sendMessage() async {
     final content = _controller.text.trim();
-    if (content.isEmpty) return;
+    if (content.isEmpty || !mounted) return;
 
+    final provider = context.read<ChatProvider>();
+
+    // 贴心优化1：直接在 UI 层进行星光余额检查，避免消息在发出前被清空 (保护用户输入的纯正心血)
+    if (provider.user != null &&
+        !provider.user!.isVip &&
+        provider.user!.freeChats <= 0) {
+      FocusScope.of(context).unfocus();
+      _showVipDialog();
+      return;
+    }
+
+    if (provider.hapticEnabled) {
+      HapticFeedback.lightImpact(); // 轻触震动反馈
+    }
     _controller.clear();
     FocusScope.of(context).unfocus(); // 自动收起键盘
-    final provider = context.read<ChatProvider>();
 
     await provider.sendMessage(content);
 
-    // 滚动到底部 (因为改为 reverse: true，所以 0.0 是最新消息)
+    // 滚动到底部 (因为 reverse: true，所以 0.0 是最新消息)
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
@@ -47,9 +63,23 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     });
 
-    // 检查是否需要显示VIP提示
+    // 贴心优化2：如果后端异步拦截抛出了次数耗尽（双重保险）
     if (provider.error == '免费次数已用完，请兑换VIP') {
       _showVipDialog();
+      provider.clearError();
+    } else if (provider.error != null && mounted) {
+      // 网络错误或其他异常的统一弹出反馈
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.error!),
+          backgroundColor: Colors.redAccent.withAlpha(200),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      provider.clearError();
     }
   }
 
@@ -145,7 +175,11 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.auto_awesome, color: Colors.cyanAccent, size: 36),
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: Colors.cyanAccent,
+                    size: 36,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     title,
@@ -160,7 +194,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   Text(
                     content,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   Row(
@@ -175,7 +213,10 @@ class _ChatScreenState extends State<ChatScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white54,
                         ),
-                        child: Text(cancelText, style: const TextStyle(fontSize: 16)),
+                        child: Text(
+                          cancelText,
+                          style: const TextStyle(fontSize: 16),
+                        ),
                       ),
                       Container(
                         decoration: BoxDecoration(
@@ -183,7 +224,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           color: Colors.white.withAlpha(20), // 简约毛玻璃底色
                           border: Border.all(color: Colors.white.withAlpha(80)),
                           boxShadow: [
-                            BoxShadow(color: Colors.white.withAlpha(25), blurRadius: 15),
+                            BoxShadow(
+                              color: Colors.white.withAlpha(25),
+                              blurRadius: 15,
+                            ),
                           ],
                         ),
                         child: TextButton(
@@ -192,7 +236,13 @@ class _ChatScreenState extends State<ChatScreen> {
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 24),
                           ),
-                          child: Text(confirmText, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                          child: Text(
+                            confirmText,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -212,122 +262,146 @@ class _ChatScreenState extends State<ChatScreen> {
       children: [
         // 高清壁纸背景放在最底层，不受系统键盘挤压
         Positioned.fill(
-          child: Image.asset(
-            'assets/images/chat_bg.png',
-            fit: BoxFit.cover,
+          child: Image.asset('assets/images/chat_bg.png', fit: BoxFit.cover),
+        ),
+        Positioned.fill(child: Container(color: Colors.black.withAlpha(80))),
+        // 动态悬浮修饰光晕
+        Positioned(
+          top: 150,
+          left: -60,
+          child: AnimatedOrb(
+            size: 200,
+            color: Colors.purpleAccent.withAlpha(30),
+            duration: const Duration(seconds: 5),
           ),
         ),
-        Positioned.fill(
-          child: Container(color: Colors.black.withAlpha(80)),
-        ),
-        // 悬浮修饰
         Positioned(
-          top: 200,
-          left: -50,
-          child: Container(
-            width: 150,
-            height: 150,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.purple.withAlpha(20),
-              backgroundBlendMode: BlendMode.screen,
-            ),
+          bottom: 100,
+          right: -80,
+          child: AnimatedOrb(
+            size: 250,
+            color: Colors.cyanAccent.withAlpha(20),
+            duration: const Duration(seconds: 7),
           ),
         ),
         Scaffold(
           backgroundColor: Colors.transparent, // 必须透明以显示底层背景
           extendBodyBehindAppBar: true,
           appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.cyanAccent.withAlpha(50),
-                    blurRadius: 10,
-                    spreadRadius: 2,
+            title: Row(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.cyanAccent.withAlpha(50),
+                        blurRadius: 10,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: Hero(
+                    tag: 'avatar_${widget.character.id}',
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Colors.transparent,
+                      backgroundImage: CachedNetworkImageProvider(
+                        widget.character.avatarUrl,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  widget.character.name,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 18,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.black.withAlpha(50),
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white70),
+            flexibleSpace: ClipRRect(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: ShaderMask(
+                      shaderCallback: (bounds) => const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.white, Colors.transparent],
+                        stops: [0.0, 1.0],
+                      ).createShader(bounds),
+                      blendMode: BlendMode.dstIn,
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(color: Colors.transparent),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.white.withAlpha(50),
+                          Colors.transparent,
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.transparent,
-                backgroundImage: CachedNetworkImageProvider(widget.character.avatarUrl),
-              ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              widget.character.name,
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18, color: Colors.white, letterSpacing: 1),
-            ),
-          ],
-        ),
-        backgroundColor: Colors.black.withAlpha(50),
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white70),
-        flexibleSpace: ClipRRect(
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.white, Colors.transparent],
-                    stops: [0.0, 1.0],
-                  ).createShader(bounds),
-                  blendMode: BlendMode.dstIn,
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Container(color: Colors.transparent),
-                  ),
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.cleaning_services_rounded,
+                  color: Colors.white70,
                 ),
+                tooltip: '遗忘记忆',
+                onPressed: _showClearHistoryDialog,
               ),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.white.withAlpha(50), Colors.transparent],
-                  ),
-                ),
-              ),
+              const SizedBox(width: 8),
             ],
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cleaning_services_rounded, color: Colors.white70),
-            tooltip: '遗忘记忆',
-            onPressed: _showClearHistoryDialog,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 顶部垫高一块空间，并展示状态，或者由于用了 SafeArea 可以不用填空
+          body: SafeArea(
+            child: Column(
+              children: [
+                // 顶部垫高一块空间，并展示状态，或者由于用了 SafeArea 可以不用填空
                 // 用户状态栏
                 Consumer<ChatProvider>(
                   builder: (context, provider, child) {
                     final user = provider.user;
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withAlpha(30),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withAlpha(60)), // 更亮的边框
+                        border: Border.all(
+                          color: Colors.white.withAlpha(60),
+                        ), // 更亮的边框
                         boxShadow: [
                           BoxShadow(
                             color: Colors.white.withAlpha(30), // 外发光晕
                             blurRadius: 20,
                             spreadRadius: 1,
-                          )
+                          ),
                         ],
                       ),
                       child: Row(
@@ -338,7 +412,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ? '✨ 你的极光已常驻'
                                 : '⭐ 剩余星光微芒: ${user?.freeChats ?? 0}',
                             style: TextStyle(
-                              color: user?.isVip == true ? Colors.cyanAccent : Colors.white70,
+                              color: user?.isVip == true
+                                  ? Colors.cyanAccent
+                                  : Colors.white70,
                               fontWeight: FontWeight.w500,
                               fontSize: 13,
                               letterSpacing: 1,
@@ -349,74 +425,88 @@ class _ChatScreenState extends State<ChatScreen> {
                               onTap: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const VipScreen()),
+                                  MaterialPageRoute(
+                                    builder: (_) => const VipScreen(),
+                                  ),
                                 );
                               },
-                              child: const Text('点亮', style: TextStyle(color: Colors.cyanAccent, fontSize: 13)),
+                              child: const Text(
+                                '点亮',
+                                style: TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ),
                         ],
                       ),
                     );
                   },
                 ),
-          // 消息列表
-          Expanded(
-            child: Consumer<ChatProvider>(
-              builder: (context, provider, child) {
-                final messages = provider.messages;
+                // 消息列表
+                Expanded(
+                  child: Consumer<ChatProvider>(
+                    builder: (context, provider, child) {
+                      final messages = provider.messages;
 
-                if (messages.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.cyanAccent.withAlpha(50),
-                                  blurRadius: 30,
+                      if (messages.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.cyanAccent.withAlpha(50),
+                                      blurRadius: 30,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              radius: 50,
-                              backgroundColor: Colors.transparent,
-                              backgroundImage: CachedNetworkImageProvider(widget.character.avatarUrl),
-                            ),
+                                child: CircleAvatar(
+                                  radius: 50,
+                                  backgroundColor: Colors.transparent,
+                                  backgroundImage: CachedNetworkImageProvider(
+                                    widget.character.avatarUrl,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                '夜深了...\n让 ${widget.character.name} 陪你坐一会儿。',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white.withAlpha(150),
+                                  height: 1.6,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 24),
-                          Text(
-                            '夜深了...\n让 ${widget.character.name} 陪你坐一会儿。',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white.withAlpha(150), height: 1.6, fontSize: 14),
-                          ),
-                      ],
-                    ),
-                  );
-                }
+                        );
+                      }
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  reverse: true, // 反转列表模式：最新消息永远位于底部
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    // 读取倒序数组，让最新消息是 index = 0
-                    final message = messages[messages.length - 1 - index];
-                    return _MessageBubble(
-                      message: message.content,
-                      isUser: message.isUser,
-                      avatar: message.isUser
-                          ? null
-                          : widget.character.avatarUrl,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+                      return ListView.builder(
+                        controller: _scrollController,
+                        reverse: true, // 反转列表模式：最新消息永远位于底部
+                        padding: const EdgeInsets.all(16),
+                        itemCount: messages.length,
+                        itemBuilder: (context, index) {
+                          // 读取倒序数组，让最新消息是 index = 0
+                          final message = messages[messages.length - 1 - index];
+                          return _MessageBubble(
+                            message: message.content,
+                            isUser: message.isUser,
+                            avatar: message.isUser
+                                ? null
+                                : widget.character.avatarUrl,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
                 // 输入框
                 ClipRRect(
                   borderRadius: const BorderRadius.only(
@@ -460,14 +550,17 @@ class _ChatScreenState extends State<ChatScreen> {
                             stops: const [0.0, 0.4],
                           ),
                           border: const Border(
-                            top: BorderSide(color: Colors.transparent, width: 0.0), // 移除小白线
+                            top: BorderSide(
+                              color: Colors.transparent,
+                              width: 0.0,
+                            ), // 移除小白线
                           ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.white.withAlpha(20), // 顶部泛出一点白光
                               blurRadius: 20,
                               offset: const Offset(0, -5),
-                            )
+                            ),
                           ],
                         ),
                         child: Row(
@@ -478,7 +571,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white.withAlpha(20), // 内部毛玻璃层
                                   borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(color: Colors.white.withAlpha(50), width: 1), // 高光白边
+                                  border: Border.all(
+                                    color: Colors.white.withAlpha(50),
+                                    width: 1,
+                                  ), // 高光白边
                                 ),
                                 child: TextField(
                                   controller: _controller,
@@ -506,27 +602,44 @@ class _ChatScreenState extends State<ChatScreen> {
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withAlpha(30), // 更亮的发送按钮底色
+                                    color: Colors.white.withAlpha(
+                                      30,
+                                    ), // 更亮的发送按钮底色
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white.withAlpha(100), width: 1.2), // 强光边缘
-                                    boxShadow: provider.isLoading ? [] : [
-                                      BoxShadow(
-                                        color: Colors.white.withAlpha(80), // 明显的白色光晕
-                                        blurRadius: 25,
-                                        spreadRadius: 4,
-                                      )
-                                    ],
+                                    border: Border.all(
+                                      color: Colors.white.withAlpha(100),
+                                      width: 1.2,
+                                    ), // 强光边缘
+                                    boxShadow: provider.isLoading
+                                        ? []
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.white.withAlpha(
+                                                80,
+                                              ), // 明显的白色光晕
+                                              blurRadius: 25,
+                                              spreadRadius: 4,
+                                            ),
+                                          ],
                                   ),
                                   child: IconButton(
                                     icon: provider.isLoading
                                         ? const SizedBox(
                                             width: 20,
                                             height: 20,
-                                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
                                           )
-                                        : const Icon(Icons.send_rounded, size: 20),
+                                        : const Icon(
+                                            Icons.send_rounded,
+                                            size: 20,
+                                          ),
                                     color: Colors.white,
-                                    onPressed: provider.isLoading ? null : _sendMessage,
+                                    onPressed: provider.isLoading
+                                        ? null
+                                        : _sendMessage,
                                   ),
                                 );
                               },
@@ -562,8 +675,9 @@ class _MessageBubble extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser && avatar != null) ...[
@@ -571,7 +685,10 @@ class _MessageBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Colors.cyanAccent.withAlpha(50), blurRadius: 10),
+                  BoxShadow(
+                    color: Colors.cyanAccent.withAlpha(50),
+                    blurRadius: 10,
+                  ),
                 ],
               ),
               child: CircleAvatar(
@@ -593,12 +710,16 @@ class _MessageBubble extends StatelessWidget {
                 bottomRight: Radius.circular(isUser ? 4 : 20),
               ),
               border: Border.all(
-                color: Colors.white.withAlpha(120), // 提亮边框线，强化边缘轮廓
+                color: isUser
+                    ? Colors.deepPurpleAccent.withAlpha(80)
+                    : Colors.white.withAlpha(120), // 区分用户与AI气泡的边缘光
                 width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withAlpha(40), // 非常柔和的外部发光，不再侵入气泡内部
+                  color: isUser
+                      ? Colors.deepPurpleAccent.withAlpha(30)
+                      : Colors.white.withAlpha(40), // 区分氛围光
                   blurRadius: 15,
                   spreadRadius: 2,
                 ),
@@ -619,16 +740,24 @@ class _MessageBubble extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withAlpha(70),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
+                  decoration: BoxDecoration(color: Colors.black.withAlpha(70)),
                   child: isUser
                       ? Text(
                           message,
-                          style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.4, letterSpacing: 0.5),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            height: 1.4,
+                            letterSpacing: 0.5,
+                          ),
                         )
-                      : _buildImmersiveMessage(message),
+                      : (message.isEmpty
+                            ? const TypingIndicator()
+                            : _buildImmersiveMessage(message)),
                 ),
               ),
             ),
@@ -638,55 +767,59 @@ class _MessageBubble extends StatelessWidget {
     );
   }
 
-  // 构建沉浸式消息（支持内心独白、动作描写）
+  // 构建沉浸式消息（支持行内混合：自动解析「动作」和 *独白*）
   Widget _buildImmersiveMessage(String msg) {
-    final List<Widget> spans = [];
-    final lines = msg.split('\n');
+    if (msg.isEmpty) return const SizedBox.shrink();
 
-    for (int i = 0; i < lines.length; i++) {
-      final line = lines[i];
+    final List<InlineSpan> spans = [];
+    final pattern = RegExp(r'(「.*?」|\*.*?\*)');
 
-      if (line.startsWith('*') && line.endsWith('*') && line.length > 2) {
-        // 内心独白：斜体灰色
-        spans.add(
-          Text(
-            line.substring(1, line.length - 1),
-            style: TextStyle(
-              fontStyle: FontStyle.italic,
-              color: Colors.white60,
-              fontSize: 14,
+    msg.splitMapJoin(
+      pattern,
+      onMatch: (Match match) {
+        final text = match[0]!;
+        if (text.startsWith('「') && text.endsWith('」')) {
+          spans.add(
+            TextSpan(
+              text: text,
+              style: const TextStyle(
+                color: Colors.cyanAccent,
+                fontSize: 15,
+                height: 1.4,
+              ),
             ),
-          ),
-        );
-      } else if (line.startsWith('「') && line.endsWith('」')) {
-        // 动作描写：淡蓝色，带一点发光
+          );
+        } else if (text.startsWith('*') && text.endsWith('*')) {
+          spans.add(
+            TextSpan(
+              text: text.substring(1, text.length - 1),
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                height: 1.4,
+              ),
+            ),
+          );
+        }
+        return '';
+      },
+      onNonMatch: (String text) {
         spans.add(
-          Text(
-            line,
+          TextSpan(
+            text: text,
             style: const TextStyle(
-              color: Colors.cyanAccent,
-              fontSize: 14,
+              color: Colors.white,
+              fontSize: 15,
+              height: 1.4,
+              letterSpacing: 0.5,
             ),
           ),
         );
-      } else {
-        // 普通对话
-        spans.add(
-          Text(
-            line,
-            style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.4, letterSpacing: 0.5),
-          ),
-        );
-      }
-
-      if (i < lines.length - 1) {
-        spans.add(const SizedBox(height: 4));
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: spans,
+        return '';
+      },
     );
+
+    return RichText(text: TextSpan(children: spans));
   }
 }

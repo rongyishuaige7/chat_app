@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/character.dart';
 import '../models/user.dart';
 import '../models/message.dart';
@@ -11,6 +14,7 @@ class ChatProvider extends ChangeNotifier {
   Character? _currentCharacter;
   bool _isLoading = false;
   String? _error;
+  bool _hapticEnabled = true;
 
   User? get user => _user;
   List<Character> get characters => _characters;
@@ -18,11 +22,16 @@ class ChatProvider extends ChangeNotifier {
   Character? get currentCharacter => _currentCharacter;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get hapticEnabled => _hapticEnabled;
 
   // 初始化
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
+
+    // 加载偏好设置
+    final prefs = await SharedPreferences.getInstance();
+    _hapticEnabled = prefs.getBool('haptic_enabled') ?? true;
 
     // 注册/获取用户
     _user = await ApiService.register();
@@ -35,6 +44,27 @@ class ChatProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+
+    // 异步预热图片缓存，不阻塞 UI
+    _precacheAvatars();
+  }
+
+  void _precacheAvatars() {
+    for (var char in _characters) {
+      if (char.avatarUrl.isNotEmpty) {
+        final provider = CachedNetworkImageProvider(char.avatarUrl);
+        provider
+            .resolve(ImageConfiguration.empty)
+            .addListener(
+              ImageStreamListener(
+                (_, __) {},
+                onError: (e, stack) {
+                  debugPrint('预加载图片失败: $e');
+                },
+              ),
+            );
+      }
+    }
   }
 
   // 刷新用户信息
@@ -71,7 +101,10 @@ class ChatProvider extends ChangeNotifier {
       String fullContent = '';
       bool hasError = false;
 
-      await for (final event in ApiService.sendMessageStream(_currentCharacter!.id, content)) {
+      await for (final event in ApiService.sendMessageStream(
+        _currentCharacter!.id,
+        content,
+      )) {
         if (event.containsKey('error') && event['error'] == true) {
           // 错误处理
           if (event['code'] == 'NO_CHATS') {
@@ -98,7 +131,10 @@ class ChatProvider extends ChangeNotifier {
           fullContent += event['content'] as String;
           // 用固定索引更新消息内容
           if (aiMessageIndex < _messages.length) {
-            _messages[aiMessageIndex] = Message(role: 'assistant', content: fullContent);
+            _messages[aiMessageIndex] = Message(
+              role: 'assistant',
+              content: fullContent,
+            );
           }
           notifyListeners();
         }
@@ -133,13 +169,29 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // 清除对话历史
-  Future<void> clearHistory() async {
-    if (_currentCharacter == null) return;
+  // 清除对话历史 (支持指定角色，若不传则清除当前角色)
+  Future<bool> clearHistory([String? charId]) async {
+    final targetId = charId ?? _currentCharacter?.id;
+    if (targetId == null) return false;
 
-    await ApiService.clearChatHistory(_currentCharacter!.id);
-    _messages = [];
+    try {
+      await ApiService.clearChatHistory(targetId);
+      if (targetId == _currentCharacter?.id) {
+        _messages = [];
+        notifyListeners();
+      }
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // 切换触觉反馈
+  Future<void> toggleHapticFeedback(bool value) async {
+    _hapticEnabled = value;
     notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('haptic_enabled', value);
   }
 
   // 兑换卡密
