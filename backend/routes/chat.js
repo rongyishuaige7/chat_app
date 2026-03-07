@@ -48,6 +48,14 @@ router.post('/send/stream', async (req, res) => {
         [device_id, character_id, 'user', message]
       );
 
+      // 【核心修复】提前扣除免费次数，防止断流导致漏扣
+      if (!isVip) {
+        db.run(
+          'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
+          [device_id]
+        );
+      }
+
       // 获取对话历史（最近20条）
       db.all(
         `SELECT * FROM (
@@ -135,14 +143,6 @@ router.post('/send/stream', async (req, res) => {
                 );
               }
 
-              // 扣除免费次数
-              if (!isVip) {
-                db.run(
-                  'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
-                  [device_id]
-                );
-              }
-
               res.end();
             });
 
@@ -186,13 +186,6 @@ router.post('/send/stream', async (req, res) => {
                   'INSERT INTO chat_history (device_id, character_id, role, content) VALUES (?, ?, ?, ?)',
                   [device_id, character_id, 'assistant', mockReply]
                 );
-
-                if (!isVip) {
-                  db.run(
-                    'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
-                    [device_id]
-                  );
-                }
 
                 res.end();
               }
@@ -246,6 +239,14 @@ router.post('/send', async (req, res) => {
         [device_id, character_id, 'user', message]
       );
 
+      // 非流式接口也同步提前扣费
+      if (!isVip) {
+        db.run(
+          'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
+          [device_id]
+        );
+      }
+
       db.all(
         `SELECT * FROM (
            SELECT * FROM chat_history
@@ -287,13 +288,6 @@ router.post('/send', async (req, res) => {
               [device_id, character_id, 'assistant', aiMessage]
             );
 
-            if (!isVip) {
-              db.run(
-                'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
-                [device_id]
-              );
-            }
-
             res.json({
               success: true,
               data: {
@@ -310,13 +304,6 @@ router.post('/send', async (req, res) => {
               'INSERT INTO chat_history (device_id, character_id, role, content) VALUES (?, ?, ?, ?)',
               [device_id, character_id, 'assistant', mockReply]
             );
-
-            if (!isVip) {
-              db.run(
-                'UPDATE users SET free_chats = free_chats - 1 WHERE device_id = ?',
-                [device_id]
-              );
-            }
 
             res.json({
               success: true,

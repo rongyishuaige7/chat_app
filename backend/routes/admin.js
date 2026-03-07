@@ -5,8 +5,8 @@ const { db } = require('../database');
 // 获取所有卡密
 router.get('/card/all', (req, res) => {
   const { admin_key } = req.query;
-
   const validAdminKey = process.env.ADMIN_KEY || 'admin_secret_key';
+
   if (admin_key !== validAdminKey) {
     return res.status(403).json({ success: false, message: '管理员密钥错误' });
   }
@@ -26,8 +26,9 @@ router.get('/card/all', (req, res) => {
 // 获取所有用户
 router.get('/user/all', (req, res) => {
   const { admin_key } = req.query;
+  const validAdminKey = process.env.ADMIN_KEY || 'admin_secret_key';
 
-  if (admin_key !== 'admin_secret_key') {
+  if (admin_key !== validAdminKey) {
     return res.status(403).json({ success: false, message: '管理员密钥错误' });
   }
 
@@ -41,6 +42,32 @@ router.get('/user/all', (req, res) => {
       data: users
     });
   });
+});
+
+// 获取指定用户的聊天记录
+router.get('/user/chat_logs/:deviceId', (req, res) => {
+  const { admin_key } = req.query;
+  const { deviceId } = req.params;
+  const validAdminKey = process.env.ADMIN_KEY || 'admin_secret_key';
+
+  if (admin_key !== validAdminKey) {
+    return res.status(403).json({ success: false, message: '管理员密钥错误' });
+  }
+
+  db.all(
+    'SELECT * FROM chat_history WHERE device_id = ? ORDER BY created_at DESC LIMIT 500',
+    [deviceId],
+    (err, history) => {
+      if (err) {
+        return res.status(500).json({ success: false, message: '数据库错误' });
+      }
+
+      res.json({
+        success: true,
+        data: history
+      });
+    }
+  );
 });
 
 module.exports = router;

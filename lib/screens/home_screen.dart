@@ -18,8 +18,9 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _fadeController;
+  late AnimationController _bgController;
   late Animation<double> _fadeAnimation;
 
   @override
@@ -37,6 +38,11 @@ class _HomeScreenState extends State<HomeScreen>
       end: 1.0,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeIn));
 
+    _bgController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 20),
+    )..repeat(reverse: true);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatProvider>().initialize();
       _fadeController.forward();
@@ -46,6 +52,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _fadeController.dispose();
+    _bgController.dispose();
     super.dispose();
   }
 
@@ -92,14 +99,7 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: () {
               Navigator.push(
                 context,
-                PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) =>
-                      const ProfileScreen(),
-                  transitionsBuilder:
-                      (context, animation, secondaryAnimation, child) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                ),
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
               );
             },
           ),
@@ -108,9 +108,21 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       body: Stack(
         children: [
-          // 高清壁纸背景
+          // 高清壁纸背景 (加入电影级慢速推拉动效)
           Positioned.fill(
-            child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
+            child: AnimatedBuilder(
+              animation: _bgController,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 1.0 + (_bgController.value * 0.15), // 缓慢放大 15%
+                  child: Transform.translate(
+                    offset: Offset(_bgController.value * 15, 0), // 缓慢水平平移
+                    child: child,
+                  ),
+                );
+              },
+              child: Image.asset('assets/images/bg.png', fit: BoxFit.cover),
+            ),
           ),
           // 深色遮罩避免背景过于抢夺视线
           Positioned.fill(child: Container(color: Colors.black.withAlpha(80))),

@@ -39,7 +39,8 @@ router.delete('/character/:id', (req, res) => {
   const { admin_key } = req.query;
   const { id } = req.params;
 
-  if (admin_key !== 'admin_secret_key') {
+  const validAdminKey = process.env.ADMIN_KEY || 'admin_secret_key';
+  if (admin_key !== validAdminKey) {
     return res.status(403).json({ success: false, message: '管理员密钥错误' });
   }
 

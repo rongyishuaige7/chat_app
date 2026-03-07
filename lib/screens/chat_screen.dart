@@ -29,6 +29,15 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  final List<String> _suggestions = [
+    '你好呀',
+    '最近在忙什么？',
+    '讲个故事给我听',
+    '今天心情怎么样？',
+    '你是谁？',
+    '你是哪里的？',
+  ];
+
   void _sendMessage() async {
     final content = _controller.text.trim();
     if (content.isEmpty || !mounted) return;
@@ -507,6 +516,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
+                // 灵感气泡 (Suggestions)
+                _buildSuggestions(),
                 // 输入框
                 ClipRRect(
                   borderRadius: const BorderRadius.only(
@@ -525,7 +536,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           ).createShader(bounds),
                           blendMode: BlendMode.dstIn,
                           child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                             child: Container(color: Colors.transparent),
                           ),
                         ),
@@ -657,6 +668,39 @@ class _ChatScreenState extends State<ChatScreen> {
       ],
     ); // End Stack
   }
+
+  Widget _buildSuggestions() {
+    return Container(
+      height: 40,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _suggestions.length,
+        itemBuilder: (context, index) {
+          final text = _suggestions[index];
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ActionChip(
+              label: Text(
+                text,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              backgroundColor: Colors.white.withAlpha(25),
+              side: BorderSide(color: Colors.white.withAlpha(40)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              onPressed: () {
+                _controller.text = text;
+                _sendMessage();
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
@@ -737,28 +781,32 @@ class _MessageBubble extends StatelessWidget {
                 bottomLeft: Radius.circular(isUser ? 20 : 4),
                 bottomRight: Radius.circular(isUser ? 4 : 20),
               ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(color: Colors.black.withAlpha(70)),
-                  child: isUser
-                      ? Text(
-                          message,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            height: 1.4,
-                            letterSpacing: 0.5,
-                          ),
-                        )
-                      : (message.isEmpty
-                            ? const TypingIndicator()
-                            : _buildImmersiveMessage(message)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
                 ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(isUser ? 100 : 70),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.white.withAlpha(isUser ? 30 : 15),
+                    width: 1,
+                  ),
+                ),
+                child: isUser
+                    ? Text(
+                        message,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          height: 1.4,
+                          letterSpacing: 0.5,
+                        ),
+                      )
+                    : (message.isEmpty
+                        ? const TypingIndicator()
+                        : _buildImmersiveMessage(message)),
               ),
             ),
           ),

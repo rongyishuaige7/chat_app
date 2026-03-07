@@ -309,6 +309,128 @@
     .row>* {
       flex: 1;
     }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-content {
+      background: #1e293b;
+      margin: 2% auto;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      width: 90%;
+      max-width: 900px;
+      height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 20px 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #0f172a;
+    }
+
+    .close {
+      color: #94a3b8;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .close:hover {
+      color: #ff4d4d;
+    }
+
+    .chat-log-item {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-bubble {
+      max-width: 85%;
+      padding: 12px 18px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.assistant {
+      align-self: flex-start;
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-info {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 5px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .assistant .chat-info {
+      justify-content: flex-start;
+    }
+
+    .user .chat-info {
+      justify-content: flex-end;
+    }
+
+    .char-badge {
+      color: #22d3ee;
+      font-weight: bold;
+    }
+
+    .btn-log {
+      padding: 6px 12px;
+      font-size: 12px;
+      background: rgba(34, 211, 238, 0.1);
+      color: #22d3ee;
+      border: 1px solid rgba(34, 211, 238, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .btn-log:hover {
+      background: rgba(34, 211, 238, 0.2);
+    }
   </style>
 </head>
 
@@ -316,11 +438,21 @@
   <div class="container">
     <h1>🎭 AI聊天App管理后台</h1>
 
+    <div class="card active"
+      style="padding: 15px; margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px;">
+      <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+        <span style="color: #94a3b8; font-size: 13px; white-space: nowrap;">🔑 管理员密钥:</span>
+        <input type="password" id="globalAdminKey" value="admin_secret_key"
+          style="padding: 8px 12px; height: 36px; max-width: 300px;">
+      </div>
+      <div style="font-size: 12px; color: #64748b;">(用于授权所有写操作)</div>
+    </div>
+
     <div class="tabs">
-      <button class="tab active" onclick="showTab('stats')">📊 数据统计</button>
-      <button class="tab" onclick="showTab('cards')">🎫 卡密管理</button>
-      <button class="tab" onclick="showTab('users')">👥 用户列表</button>
-      <button class="tab" onclick="showTab('characters')">🎨 角色管理</button>
+      <button class="tab active" onclick="showTab('stats', this)">📊 数据统计</button>
+      <button class="tab" onclick="showTab('cards', this)">🎫 卡密管理</button>
+      <button class="tab" onclick="showTab('users', this)">👥 用户列表</button>
+      <button class="tab" onclick="showTab('characters', this)">🎨 角色管理</button>
     </div>
 
     <!-- 数据统计 -->
@@ -364,11 +496,7 @@
           <input type="number" id="cardCount" value="5" min="1" max="50">
         </div>
       </div>
-      <div class="form-group">
-        <label>管理员密钥</label>
-        <input type="password" id="adminKey" value="admin_secret_key">
-      </div>
-      <button onclick="generateCards()">生成卡密</button>
+      <button onclick="generateCards()">⚡ 批量生成</button>
       <div id="generateResult" class="result"></div>
 
       <h2 style="margin-top: 24px;">📋 卡密使用记录</h2>
@@ -397,6 +525,7 @@
             <th>VIP状态</th>
             <th>VIP到期时间</th>
             <th>注册时间</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="userTable"></tbody>
@@ -413,6 +542,7 @@
             <th>名称</th>
             <th>描述</th>
             <th>头像</th>
+            <th>操作</th>
           </tr>
         </thead>
         <tbody id="characterTable"></tbody>
@@ -445,14 +575,50 @@
     </div>
   </div>
 
+  <!-- 聊天记录弹窗 -->
+  <div id="logModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="logModalTitle" style="margin:0; font-size:18px;">对话日志</h2>
+        <span class="close" onclick="closeLogs()">&times;</span>
+      </div>
+      <div id="logBody" class="modal-body">
+        <!-- 内容由JS填充 -->
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = '/api';
 
-    function showTab(tabId) {
-      document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    // 格式化时间：将 SQLite 的 UTC 时间转换为本地浏览器时间 (如北京时间 +8)
+    function formatDate(dateStr) {
+      if (!dateStr || dateStr === '-') return '-';
+      try {
+        // SQLite 的格式是 "2026-03-07 08:00:00"，我们需要将其转为 "2026-03-07T08:00:00Z" 强制浏览器识别为 UTC
+        const isoStr = dateStr.replace(' ', 'T') + 'Z';
+        const date = new Date(isoStr);
+        // 如果转换失败返回原始字符串
+        if (isNaN(date.getTime())) return dateStr;
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        });
+      } catch (e) {
+        return dateStr;
+      }
+    }
+
+    function showTab(tabId, el) {
+      document.querySelectorAll('.card').forEach(c => { if (c.id !== "globalAuth") c.classList.remove('active') });
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
       document.getElementById(tabId).classList.add('active');
-      event.target.classList.add('active');
+      if (el) el.classList.add('active');
 
       if (tabId === 'stats') loadStats();
       if (tabId === 'cards') loadCards();
@@ -461,7 +627,7 @@
     }
 
     async function loadStats() {
-      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
+      const adminKey = document.getElementById('globalAdminKey').value;
       try {
         const [cardsRes, usersRes] = await Promise.all([
           fetch(`${API_BASE}/card/all?admin_key=${adminKey}`),
@@ -491,7 +657,7 @@
     async function generateCards() {
       const cardType = document.getElementById('cardType').value;
       const count = parseInt(document.getElementById('cardCount').value);
-      const adminKey = document.getElementById('adminKey').value;
+      const adminKey = document.getElementById('globalAdminKey').value;
       const resultDiv = document.getElementById('generateResult');
 
       try {
@@ -518,7 +684,7 @@
     }
 
     async function loadCards() {
-      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
+      const adminKey = document.getElementById('globalAdminKey').value;
       const tbody = document.getElementById('cardTable');
       tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
 
@@ -533,7 +699,7 @@
               <td>${c.card_type}</td>
               <td><span class="tag ${c.used_by ? 'tag-used' : 'tag-unused'}">${c.used_by ? '已使用' : '未使用'}</span></td>
               <td>${c.used_by || '-'}</td>
-              <td>${c.used_at || '-'}</td>
+              <td>${formatDate(c.used_at)}</td>
             </tr>
           `).join('');
         } else {
@@ -545,7 +711,7 @@
     }
 
     async function loadUsers() {
-      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
+      const adminKey = document.getElementById('globalAdminKey').value;
       const tbody = document.getElementById('userTable');
       tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
 
@@ -561,8 +727,11 @@
                 <td><code>${u.device_id.substring(0, 20)}...</code></td>
                 <td>${u.free_chats}</td>
                 <td><span class="tag ${isVip ? 'tag-vip' : 'tag-free'}">${isVip ? 'VIP' : '免费'}</span></td>
-                <td>${u.vip_expire_time ? u.vip_expire_time.substring(0, 19) : '-'}</td>
-                <td>${u.created_at ? u.created_at.substring(0, 19) : '-'}</td>
+                <td>${formatDate(u.vip_expire_time)}</td>
+                <td>${formatDate(u.created_at)}</td>
+                <td>
+                  <button class="btn-log" onclick="viewChatLogs('${u.device_id}')">日志</button>
+                </td>
               </tr>
             `;
           }).join('');
@@ -589,14 +758,32 @@
               <td><code>${c.id}</code></td>
               <td>${c.name}</td>
               <td>${c.description || '-'}</td>
-              <td><img src="${c.avatar}" width="40" height="40" style="border-radius:50%;"></td>
-            </tr>
-          `).join('');
+              <td><img src="${c.avatar}" width="40" height="40" style="border-radius:50%; object-fit: cover;"></td>
+            <td><button class="danger" style="padding: 4px 10px; font-size: 11px;" onclick="deleteCharacter('${c.id}')">删除</button></td>
+          </tr>
+        `).join('');
         } else {
-          tbody.innerHTML = '<tr><td colspan="4">暂无数据</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5">暂无数据</td></tr>';
         }
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4">错误: ${e.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5">错误: ${e.message}</td></tr>`;
+      }
+    }
+
+    async function deleteCharacter(id) {
+      if (!confirm(`确定要删除角色 ${id} 吗？此操作不可逆！`)) return;
+      const adminKey = document.getElementById('globalAdminKey').value;
+      try {
+        const res = await fetch(`${API_BASE}/character/${id}?admin_key=${adminKey}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          alert('删除成功');
+          loadCharacters();
+        } else {
+          alert('删除失败: ' + data.message);
+        }
+      } catch (e) {
+        alert('异常: ' + e.message);
       }
     }
 
@@ -615,7 +802,7 @@
       }
 
       try {
-        const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
+        const adminKey = document.getElementById('globalAdminKey').value;
         const response = await fetch(`${API_BASE}/character/add?admin_key=${adminKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -642,6 +829,77 @@
       } catch (e) {
         resultDiv.className = 'result show error';
         resultDiv.innerHTML = `错误：${e.message}`;
+      }
+    }
+
+    async function viewChatLogs(deviceId) {
+      const adminKey = document.getElementById('globalAdminKey').value;
+      if (!adminKey) {
+        alert('请在顶部输入管理员密钥');
+        return;
+      }
+
+      const logModal = document.getElementById('logModal');
+      const logBody = document.getElementById('logBody');
+      const logTitle = document.getElementById('logModalTitle');
+
+      logTitle.innerText = `星河档案: ${deviceId.substring(0, 12)}...`;
+      logBody.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">✨ 正在开启记忆之门...</div>';
+      logModal.style.display = 'block';
+
+      try {
+        const response = await fetch(`${API_BASE}/user/chat_logs/${deviceId}?admin_key=${adminKey}`);
+        const result = await response.json();
+
+        if (result.success) {
+          if (result.data.length === 0) {
+            logBody.innerHTML = '<div style="text-align:center; padding:40px; color:#94a3b8;">🌌 此处尚无星光记忆 (暂无对话)</div>';
+            return;
+          }
+
+          logBody.innerHTML = '';
+          // 数据库查出来是最新的在前，反转显示
+          const history = [...result.data].reverse();
+
+          history.forEach(log => {
+            const item = document.createElement('div');
+            item.className = `chat-log-item`;
+
+            const time = formatDate(log.created_at);
+            const charInfo = log.role === 'assistant' ? `<span class="char-badge">@${log.character_id}</span>` : '<strong>你</strong>';
+
+            item.innerHTML = `
+              <div class="chat-bubble ${log.role}">
+                ${log.content.replace(/\n/g, '<br>')}
+              </div>
+              <div class="chat-info ${log.role}">
+                ${charInfo} • ${time}
+              </div>
+            `;
+            logBody.appendChild(item);
+          });
+
+          // 自动滚动到底部
+          setTimeout(() => {
+            logBody.scrollTop = logBody.scrollHeight;
+          }, 100);
+
+        } else {
+          logBody.innerHTML = `<div style="color:#f87171; text-align:center; padding:40px;">⚠️ 读取失败: ${result.message}</div>`;
+        }
+      } catch (e) {
+        logBody.innerHTML = `<div style="color:#f87171; text-align:center; padding:40px;">⚠️ 系统异常: ${e.message}</div>`;
+      }
+    }
+
+    function closeLogs() {
+      document.getElementById('logModal').style.display = 'none';
+    }
+
+    window.onclick = function (event) {
+      const modal = document.getElementById('logModal');
+      if (event.target == modal) {
+        closeLogs();
       }
     }
 
