@@ -82,7 +82,7 @@ class ApiService {
 
       String buffer = '';
       
-      await for (final chunk in stream.transform(utf8.decoder)) {
+      await for (final chunk in stream.cast<List<int>>().transform(utf8.decoder)) {
         buffer += chunk;
         final lines = buffer.split('\n');
         buffer = lines.removeLast();
@@ -102,8 +102,10 @@ class ApiService {
       }
     } on DioException catch (e) {
       yield {'error': true, 'message': '网络连接中断', 'code': e.response?.statusCode};
-    } catch (e) {
-      yield {'error': true, 'message': '遭遇星际风暴，请重试'};
+    } catch (e, stack) {
+      print('Stream exception: $e');
+      print('Stacktrace: $stack');
+      yield {'error': true, 'message': '出现异常: $e'};
     }
   }
 

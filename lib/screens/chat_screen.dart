@@ -264,7 +264,7 @@ class _ChatScreenState extends State<ChatScreen> {
         Positioned.fill(
           child: Image.asset('assets/images/chat_bg.png', fit: BoxFit.cover),
         ),
-        Positioned.fill(child: Container(color: Colors.black.withAlpha(80))),
+        Positioned.fill(child: Container(color: Colors.black.withAlpha(160))),
         // 动态悬浮修饰光晕
         Positioned(
           top: 150,

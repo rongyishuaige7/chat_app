@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/chat_provider.dart';
 
@@ -14,6 +15,7 @@ class _VipScreenState extends State<VipScreen> {
   bool _isRedeeming = false;
   String? _resultMessage;
   bool? _isSuccess;
+  String? _currentVipType;
 
   @override
   void dispose() {
@@ -28,6 +30,7 @@ class _VipScreenState extends State<VipScreen> {
         _resultMessage = '请输入卡密';
         _isSuccess = false;
       });
+      _startHideMessageTimer();
       return;
     }
 
@@ -37,21 +40,34 @@ class _VipScreenState extends State<VipScreen> {
     });
 
     final provider = context.read<ChatProvider>();
-    final success = await provider.redeemCard(cardKey);
+    final result = await provider.redeemCard(cardKey);
 
     setState(() {
       _isRedeeming = false;
-      if (success) {
-        _resultMessage = '兑换成功！';
-        _isSuccess = true;
-        _cardController.clear();
+      if (result != null) {
+        if (result['success'] == true) {
+          _resultMessage = result['message'] ?? '兑换成功！';
+          _isSuccess = true;
+          _cardController.clear();
+
+          final match = RegExp(r'获得(.*)资格').firstMatch(_resultMessage!);
+          if (match != null) {
+            _currentVipType = match.group(1);
+          }
+        } else {
+          _resultMessage = result['message'] ?? '兑换失败，请检查卡密是否正确';
+          _isSuccess = false;
+        }
       } else {
-        _resultMessage = '兑换失败，请检查卡密是否正确';
+        _resultMessage = '网络连接失败，请稍后重试';
         _isSuccess = false;
       }
     });
 
-    // 3秒后清除结果消息
+    _startHideMessageTimer();
+  }
+
+  void _startHideMessageTimer() {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
@@ -66,7 +82,14 @@ class _VipScreenState extends State<VipScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('星之结茧', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 2)),
+        title: const Text(
+          '星之结茧',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 2,
+          ),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
@@ -85,12 +108,18 @@ class _VipScreenState extends State<VipScreen> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.cyanAccent.withAlpha(50), Colors.purpleAccent.withAlpha(50)],
+                    colors: [
+                      Colors.cyanAccent.withAlpha(50),
+                      Colors.purpleAccent.withAlpha(50),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.white.withAlpha(30), width: 1.5),
+                  border: Border.all(
+                    color: Colors.white.withAlpha(30),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.cyanAccent.withAlpha(20),
@@ -120,9 +149,13 @@ class _VipScreenState extends State<VipScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '极光旅者 / VIP',
-                      style: TextStyle(
+                    Text(
+                      _currentVipType != null
+                          ? '$_currentVipType / VIP'
+                          : (context.watch<ChatProvider>().user?.isVip == true
+                                ? '已激活 / VIP'
+                                : '极光旅者 / VIP'),
+                      style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
@@ -131,7 +164,10 @@ class _VipScreenState extends State<VipScreen> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black.withAlpha(40),
                         borderRadius: BorderRadius.circular(20),
@@ -189,7 +225,9 @@ class _VipScreenState extends State<VipScreen> {
                 prefixIcon: const Icon(Icons.key, color: Colors.cyanAccent),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide(color: Colors.cyanAccent.withAlpha(100)),
+                  borderSide: BorderSide(
+                    color: Colors.cyanAccent.withAlpha(100),
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -204,31 +242,56 @@ class _VipScreenState extends State<VipScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _isRedeeming ? null : _redeemCard,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent.withAlpha(200),
-                  foregroundColor: Colors.black87,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: () => _showGetCardDialog(context),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.cyanAccent.withAlpha(100)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        '获取卡密',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: _isRedeeming
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isRedeeming ? null : _redeemCard,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.cyanAccent.withAlpha(200),
+                        foregroundColor: Colors.black87,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                      )
-                    : const Text(
-                        '立即兑换',
-                        style: TextStyle(fontSize: 16),
                       ),
-              ),
+                      child: _isRedeeming
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('立即兑换', style: TextStyle(fontSize: 16)),
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_resultMessage != null) ...[
               const SizedBox(height: 16),
@@ -243,9 +306,7 @@ class _VipScreenState extends State<VipScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      _isSuccess == true
-                          ? Icons.check_circle
-                          : Icons.error,
+                      _isSuccess == true ? Icons.check_circle : Icons.error,
                       color: _isSuccess == true ? Colors.green : Colors.red,
                     ),
                     const SizedBox(width: 8),
@@ -294,12 +355,17 @@ class _VipScreenState extends State<VipScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('印记状态:', style: TextStyle(color: Colors.white70)),
+                          const Text(
+                            '印记状态:',
+                            style: TextStyle(color: Colors.white70),
+                          ),
                           Text(
                             user.isVip ? '常驻旅者' : '流浪者',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: user.isVip ? Colors.cyanAccent : Colors.white54,
+                              color: user.isVip
+                                  ? Colors.cyanAccent
+                                  : Colors.white54,
                             ),
                           ),
                         ],
@@ -309,13 +375,19 @@ class _VipScreenState extends State<VipScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('光芒消散时间:', style: TextStyle(color: Colors.white70)),
+                            const Text(
+                              '光芒消散时间:',
+                              style: TextStyle(color: Colors.white70),
+                            ),
                             Text(
-                            DateTime.parse(user.vipExpireTime!)
-                                .add(const Duration(hours: 8))
-                                .toString()
-                                .split('.')[0],
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                              DateTime.parse(user.vipExpireTime!)
+                                  .add(const Duration(hours: 8))
+                                  .toString()
+                                  .split('.')[0],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ],
                         ),
@@ -324,7 +396,10 @@ class _VipScreenState extends State<VipScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('剩余星光:', style: TextStyle(color: Colors.white70)),
+                          const Text(
+                            '剩余星光:',
+                            style: TextStyle(color: Colors.white70),
+                          ),
                           Text(
                             '${user.freeChats}',
                             style: const TextStyle(
@@ -355,7 +430,10 @@ class _VipScreenState extends State<VipScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.tips_and_updates_rounded, color: Colors.cyanAccent.shade100),
+                      Icon(
+                        Icons.tips_and_updates_rounded,
+                        color: Colors.cyanAccent.shade100,
+                      ),
                       const SizedBox(width: 8),
                       const Text(
                         '获取秘钥途径',
@@ -370,8 +448,8 @@ class _VipScreenState extends State<VipScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildCardInfo('星辰体验卡', '唤醒 3 天旅途'),
-                  _buildCardInfo('新月流光卡', '唤醒 30 天旅途'),
-                  _buildCardInfo('永夜极光卡', '唤醒 365 天旅途'),
+                  _buildCardInfo('新月流光卡', '唤醒 7 天旅途'),
+                  _buildCardInfo('永夜极光卡', '唤醒 30 天旅途'),
                 ],
               ),
             ),
@@ -395,7 +473,14 @@ class _VipScreenState extends State<VipScreen> {
             child: Icon(icon, color: Colors.cyanAccent, size: 20),
           ),
           const SizedBox(width: 16),
-          Text(text, style: const TextStyle(fontSize: 15, color: Colors.white70, letterSpacing: 0.5)),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 15,
+              color: Colors.white70,
+              letterSpacing: 0.5,
+            ),
+          ),
         ],
       ),
     );
@@ -415,12 +500,53 @@ class _VipScreenState extends State<VipScreen> {
             ),
             child: Text(
               type,
-              style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.w500, fontSize: 13),
+              style: const TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.w500,
+                fontSize: 13,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Text(name, style: const TextStyle(color: Colors.white70)),
         ],
+      ),
+    );
+  }
+
+  void _showGetCardDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF1E293B).withAlpha(200),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: Colors.cyanAccent.withAlpha(50)),
+          ),
+          title: const Text('获取卡密', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '请通过下方联系方式与群星管理员取得连接，获取您的专属星辰秘钥。',
+                style: TextStyle(color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 20),
+              const Text('👤 管理员: RongYi', style: TextStyle(color: Colors.white)),
+              const SizedBox(height: 8),
+              const Text('✉️ 联络信道: r2830305965@qq.com', style: TextStyle(color: Colors.cyanAccent, fontSize: 13)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('连接完毕', style: TextStyle(color: Colors.cyanAccent)),
+            ),
+          ],
+        ),
       ),
     );
   }

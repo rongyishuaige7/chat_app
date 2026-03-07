@@ -1,211 +1,317 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI聊天App管理后台</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: radial-gradient(circle at top left, #1a1a2e 0%, #0f1015 100%);
+      color: #e2e8f0;
       min-height: 100vh;
       padding: 20px;
+      /* Adding a starry background subtle pattern */
+      background-image: radial-gradient(#ffffff1a 1px, transparent 1px);
+      background-size: 40px 40px;
     }
+
     .container {
       max-width: 900px;
       margin: 0 auto;
     }
+
     h1 {
-      color: white;
+      color: #fff;
       text-align: center;
       margin-bottom: 30px;
       font-size: 28px;
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     }
+
     .tabs {
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 12px;
+      margin-bottom: 24px;
     }
+
     .tab {
       padding: 12px 24px;
-      background: rgba(255,255,255,0.2);
-      color: white;
-      border: none;
-      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
       cursor: pointer;
       font-size: 14px;
+      font-weight: 500;
       transition: all 0.3s;
+      backdrop-filter: blur(10px);
     }
+
+    .tab:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
     .tab.active {
-      background: white;
-      color: #667eea;
+      background: linear-gradient(135deg, rgba(0, 255, 255, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+      color: #22d3ee;
+      border-color: rgba(34, 211, 238, 0.4);
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
     }
+
     .card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
+      background: rgba(20, 22, 30, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      padding: 28px;
       margin-bottom: 20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
       display: none;
     }
+
     .card.active {
       display: block;
+      animation: fadeIn 0.4s ease-out forwards;
     }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     .card h2 {
-      color: #333;
-      margin-bottom: 16px;
+      color: #f8fafc;
+      margin-bottom: 20px;
       font-size: 18px;
+      font-weight: 600;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      letter-spacing: 1px;
     }
+
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
     }
+
     label {
       display: block;
-      margin-bottom: 6px;
-      color: #666;
-      font-size: 14px;
+      margin-bottom: 8px;
+      color: #94a3b8;
+      font-size: 13px;
     }
-    input, select {
+
+    input,
+    select,
+    textarea {
       width: 100%;
-      padding: 12px;
-      border: 2px solid #eee;
-      border-radius: 8px;
+      padding: 14px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      color: #fff;
       font-size: 14px;
+      transition: all 0.3s;
     }
-    input:focus, select:focus {
+
+    input:focus,
+    select:focus,
+    textarea:focus {
       outline: none;
-      border-color: #667eea;
+      border-color: rgba(34, 211, 238, 0.5);
+      background: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.1);
     }
+
+    select option {
+      background: #1e293b;
+      color: #fff;
+    }
+
     button {
-      padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 14px 28px;
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
       cursor: pointer;
+      transition: all 0.3s;
     }
+
     button:hover {
       opacity: 0.9;
+      transform: translateY(-1px);
+      box-shadow: 0 5px 15px rgba(79, 70, 229, 0.3);
     }
+
     button.danger {
-      background: #dc3545;
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
     }
+
     button.success {
-      background: #28a745;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
     }
+
     .result {
-      margin-top: 16px;
-      padding: 12px;
-      border-radius: 8px;
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
       font-size: 14px;
       word-break: break-all;
       display: none;
+      border: 1px solid transparent;
     }
+
     .result.show {
       display: block;
     }
+
     .result.success {
-      background: #d4edda;
-      color: #155724;
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
     }
+
     .result.error {
-      background: #f8d7da;
-      color: #721c24;
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #f87171;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+      margin-top: 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      overflow: hidden;
     }
-    th, td {
-      padding: 12px;
+
+    th,
+    td {
+      padding: 16px;
       text-align: left;
-      border-bottom: 1px solid #eee;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       font-size: 13px;
     }
+
     th {
-      background: #f8f9fa;
-      font-weight: 600;
+      background: rgba(255, 255, 255, 0.03);
+      color: #cbd5e1;
+      font-weight: 500;
+      letter-spacing: 0.5px;
     }
-    .tag {
+
+    td {
+      color: #94a3b8;
+    }
+
+    code {
+      background: rgba(0, 0, 0, 0.4);
       padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-    .tag-vip {
-      background: #28a745;
-      color: white;
-    }
-    .tag-free {
-      background: #6c757d;
-      color: white;
-    }
-    .tag-used {
-      background: #ffc107;
-      color: #333;
-    }
-    .tag-unused {
-      background: #17a2b8;
-      color: white;
-    }
-    .card-list {
-      background: #f8f9fa;
-      padding: 12px;
-      border-radius: 8px;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .card-item {
-      padding: 8px 12px;
-      margin: 4px 0;
-      background: white;
       border-radius: 6px;
+      color: #38bdf8;
       font-family: monospace;
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
     }
+
+    .tag {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .tag-vip {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .tag-free {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .tag-used {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .tag-unused {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
+      gap: 16px;
+      margin-bottom: 24px;
     }
+
     .stat-item {
       text-align: center;
-      padding: 16px;
-      background: #f8f9fa;
-      border-radius: 8px;
+      padding: 24px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.3s;
     }
+
+    .stat-item:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
     .stat-value {
-      font-size: 24px;
-      font-weight: bold;
-      color: #667eea;
+      font-size: 28px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
     }
+
     .stat-label {
       font-size: 12px;
-      color: #666;
-      margin-top: 4px;
+      color: #64748b;
+      margin-top: 8px;
+      letter-spacing: 1px;
     }
-    .empty {
-      text-align: center;
-      padding: 40px;
-      color: #999;
-    }
+
     .row {
       display: flex;
-      gap: 12px;
+      gap: 16px;
     }
-    .row > * {
+
+    .row>* {
       flex: 1;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>🎭 AI聊天App管理后台</h1>
@@ -331,7 +437,8 @@
       </div>
       <div class="form-group">
         <label>系统提示词</label>
-        <textarea id="newCharPrompt" rows="4" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;" placeholder="请描述角色的性格、说话方式等..."></textarea>
+        <textarea id="newCharPrompt" rows="4" style="width:100%;padding:12px;border:2px solid #eee;border-radius:8px;"
+          placeholder="请描述角色的性格、说话方式等..."></textarea>
       </div>
       <button onclick="addCharacter()" class="success">添加角色</button>
       <div id="charResult" class="result"></div>
@@ -354,10 +461,11 @@
     }
 
     async function loadStats() {
+      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
       try {
         const [cardsRes, usersRes] = await Promise.all([
-          fetch(`${API_BASE}/card/all?admin_key=admin_secret_key`),
-          fetch(`${API_BASE}/user/all?admin_key=admin_secret_key`)
+          fetch(`${API_BASE}/card/all?admin_key=${adminKey}`),
+          fetch(`${API_BASE}/user/all?admin_key=${adminKey}`)
         ]);
 
         const cardsData = await cardsRes.json();
@@ -410,11 +518,12 @@
     }
 
     async function loadCards() {
+      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
       const tbody = document.getElementById('cardTable');
       tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
 
       try {
-        const response = await fetch(`${API_BASE}/card/all?admin_key=admin_secret_key`);
+        const response = await fetch(`${API_BASE}/card/all?admin_key=${adminKey}`);
         const data = await response.json();
 
         if (data.success && data.data) {
@@ -436,11 +545,12 @@
     }
 
     async function loadUsers() {
+      const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
       const tbody = document.getElementById('userTable');
       tbody.innerHTML = '<tr><td colspan="5">加载中...</td></tr>';
 
       try {
-        const response = await fetch(`${API_BASE}/user/all?admin_key=admin_secret_key`);
+        const response = await fetch(`${API_BASE}/user/all?admin_key=${adminKey}`);
         const data = await response.json();
 
         if (data.success && data.data) {
@@ -469,6 +579,7 @@
       tbody.innerHTML = '<tr><td colspan="4">加载中...</td></tr>';
 
       try {
+        // Characters list is usually public but we keep it safe
         const response = await fetch(`${API_BASE}/characters`);
         const data = await response.json();
 
@@ -504,7 +615,8 @@
       }
 
       try {
-        const response = await fetch(`${API_BASE}/character/add?admin_key=admin_secret_key`, {
+        const adminKey = document.getElementById('adminKey') ? document.getElementById('adminKey').value : 'admin_secret_key';
+        const response = await fetch(`${API_BASE}/character/add?admin_key=${adminKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -536,4 +648,5 @@
     loadStats();
   </script>
 </body>
+
 </html>

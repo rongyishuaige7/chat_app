@@ -163,11 +163,13 @@ router.post('/send/stream', async (req, res) => {
             // Fallback: 使用mock回复模拟流式输出
             const mockReply = getMockReply(character_id, message);
 
-            // 设置SSE头
-            res.setHeader('Content-Type', 'text/event-stream');
-            res.setHeader('Cache-Control', 'no-cache');
-            res.setHeader('Connection', 'keep-alive');
-            res.flushHeaders();
+            // 如果没有发送过头，再重新设置
+            if (!res.headersSent) {
+              res.setHeader('Content-Type', 'text/event-stream');
+              res.setHeader('Cache-Control', 'no-cache');
+              res.setHeader('Connection', 'keep-alive');
+              res.flushHeaders();
+            }
 
             // 逐字符发送mock回复，模拟流式效果
             const chars = [...mockReply];

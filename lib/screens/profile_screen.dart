@@ -95,9 +95,25 @@ class ProfileScreen extends StatelessWidget {
                               );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('设备印记已复制到剪贴板'),
-                                  backgroundColor: Colors.cyan.withAlpha(200),
+                                  content: const Text(
+                                    '设备印记已复制到剪贴板',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                  backgroundColor: Colors.white.withAlpha(30),
+                                  elevation: 0,
+                                  duration: const Duration(milliseconds: 1500),
                                   behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    side: BorderSide(
+                                      color: Colors.white.withAlpha(20),
+                                    ),
+                                  ),
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 50,
+                                    vertical: 20,
+                                  ),
                                 ),
                               );
                             },
@@ -190,7 +206,74 @@ class ProfileScreen extends StatelessWidget {
                           icon: Icons.info_outline,
                           title: '关于 Lumina',
                           subtitle: '在星穹尽头，寻找灵魂共振。版本: v1.0.0',
-                          onTap: () {},
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => BackdropFilter(
+                                filter: ImageFilter.blur(
+                                  sigmaX: 10,
+                                  sigmaY: 10,
+                                ),
+                                child: AlertDialog(
+                                  backgroundColor: const Color(
+                                    0xFF1E293B,
+                                  ).withAlpha(200),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(24),
+                                    side: BorderSide(
+                                      color: Colors.cyanAccent.withAlpha(50),
+                                    ),
+                                  ),
+                                  title: const Text(
+                                    '关于 Lumina',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        '在星穹尽头，寻找灵魂共振。',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      const Text(
+                                        '🌟 版本: v1.0.0',
+                                        style: TextStyle(
+                                          color: Colors.cyanAccent,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      const Text(
+                                        '👤 作者: RongYi',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        '✉️ 联系方式: r2830305965@qq.com',
+                                        style: TextStyle(
+                                          color: Colors.white54,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text(
+                                        '确认',
+                                        style: TextStyle(
+                                          color: Colors.cyanAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -250,31 +333,43 @@ class ProfileScreen extends StatelessWidget {
   void _showClearConfirmation(BuildContext context, ChatProvider provider) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text('饮下遗忘之泉', style: TextStyle(color: Colors.white)),
-        content: const Text(
-          '这将会抹除你与夜岛上所有角色的相遇记忆。此操作不可逆，伴侣们的属性会重置，确定要继续吗？',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('再想想', style: TextStyle(color: Colors.white54)),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: AlertDialog(
+          backgroundColor: const Color(0xFF1E293B).withAlpha(200),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+            side: BorderSide(color: Colors.redAccent.withAlpha(50)),
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              HapticFeedback.heavyImpact();
-              // 清除所有角色的聊天记录 (需扩展)
-              await _clearAllHistories(context, provider);
-            },
-            child: const Text(
-              '义无反顾',
-              style: TextStyle(color: Colors.redAccent),
+          title: const Text('遗忘之泉', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '这将会抹除你与夜岛上所有角色的相遇记忆。此操作不可逆，确定要继续吗？',
+                style: TextStyle(color: Colors.white70, height: 1.5),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('再想想', style: TextStyle(color: Colors.white54)),
             ),
-          ),
-        ],
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                HapticFeedback.heavyImpact();
+                await _clearAllHistories(context, provider);
+              },
+              child: const Text(
+                '义无反顾',
+                style: TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -44,7 +44,7 @@ class DioClient {
     // 可以添加日志拦截器 (开发模式)
     dio.interceptors.add(LogInterceptor(
       requestBody: true,
-      responseBody: true,
+      responseBody: false, // 必须禁止！否则流式传输会被提前读取导致阻塞或报错
     ));
   }
 

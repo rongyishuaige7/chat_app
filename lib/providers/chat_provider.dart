@@ -195,13 +195,12 @@ class ChatProvider extends ChangeNotifier {
   }
 
   // 兑换卡密
-  Future<bool> redeemCard(String cardKey) async {
+  Future<Map<String, dynamic>?> redeemCard(String cardKey) async {
     final result = await ApiService.verifyCard(cardKey);
-    if (result != null && result['success']) {
+    if (result != null && result['success'] == true) {
       await refreshUserInfo();
-      return true;
     }
-    return false;
+    return result;
   }
 
   void clearError() {

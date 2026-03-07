@@ -3,6 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const rateLimit = require('express-rate-limit'); // 引入防护
+const basicAuth = require('express-basic-auth'); // 引入安全验证
 const { initDatabase } = require('./database');
 
 // 导入路由
@@ -43,7 +44,14 @@ const chatLimiter = rateLimit({
 
 app.use('/api/', globalLimiter); // 作用于所有 /api/ 开头的接口
 
-// 静态文件
+// 静态文件与后台保护
+app.use('/admin.html', basicAuth({
+  users: { 'lumina_admin': process.env.ADMIN_PASSWORD || 'lumina2025' },
+  challenge: true,
+  realm: 'Lumina Admin Control',
+  unauthorizedResponse: '访问被拒绝：密码错误或未登录'
+}));
+
 app.use(express.static(__dirname));
 app.use('/imgs', express.static(path.join(__dirname, '../imgs')));
 
